@@ -37,6 +37,73 @@
     let dx = 2;
     let dy = -2;
 
+    //Paddle Parametres
+    const paddleHeight = 10;
+    const paddleWidth = 75;
+    let paddleX = (boardWidth - paddleWidth) / 2;
+
+    //Buttons state
+    let leftPressed = false;
+    let rightPressed = false;
+
+    //Butons handlers
+    const keyDownHandler = e => {
+      if (e.key === "Right" || e.key === "ArrowRight") {
+        rightPressed = true;
+      }
+
+      if (e.key === "Left" || e.key === "ArrowLeft") {
+        leftPressed = true;
+      }
+    };
+
+    const keyUpHandler = e => {
+      if (e.key === "Right" || e.key === "ArrowRight") {
+        rightPressed = false;
+      }
+
+      if (e.key === "Left" || e.key === "ArrowLeft") {
+        leftPressed = false;
+      }
+    };
+
+    //Buttons events
+    document.addEventListener("keydown", keyDownHandler, false);
+    document.addEventListener("keyup", keyUpHandler, false);
+
+    //Brick description
+    const brickRowCount = 3;
+    const brickColumnCount = 5;
+    const brickWidth = 75;
+    const brickHeight = 20;
+    const brickPadding = 10;
+    const brickOffsetTop = 30;
+    const brickOffsetLeft = 30;
+
+    var bricks = [];
+    for (var c = 0; c < brickColumnCount; c++) {
+      bricks[c] = [];
+      for (var r = 0; r < brickRowCount; r++) {
+        bricks[c][r] = { x: 0, y: 0 };
+      }
+    }
+
+    const drawBricks = () => {
+      for (var c = 0; c < brickColumnCount; c++) {
+        for (var r = 0; r < brickRowCount; r++) {
+          var brickX = c * (brickWidth + brickPadding) + brickOffsetLeft;
+          var brickY = r * (brickHeight + brickPadding) + brickOffsetTop;
+          bricks[c][r].x = brickX;
+          bricks[c][r].y = brickY;
+          ctx.beginPath();
+          ctx.rect(brickX, brickY, brickWidth, brickHeight);
+          ctx.fillStyle = "#0095DD";
+          ctx.fill();
+          ctx.closePath();
+        }
+      }
+    };
+
     const drawBall = () => {
       ctx.beginPath();
       ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
@@ -45,12 +112,21 @@
       ctx.closePath();
     };
 
-    //Paddle Parametres
-    const paddleHeight = 10;
-    const paddleWidth = 75;
-    const paddleX = (boardWidth - paddleWidth) / 2;
-
     const drawPaddle = () => {
+      if (rightPressed) {
+        paddleX += 7;
+        if (paddleX + paddleWidth > canvas.width) {
+          paddleX = canvas.width - paddleWidth;
+        }
+      }
+
+      if (leftPressed) {
+        paddleX -= 7;
+        if (paddleX < 0) {
+          paddleX = 0;
+        }
+      }
+
       ctx.beginPath();
       ctx.rect(paddleX, boardHeight - paddleHeight, paddleWidth, paddleHeight);
       ctx.fillStyle = "#0095DD";
@@ -59,22 +135,33 @@
     };
 
     const draw = () => {
+      drawBricks();
       ctx.clearRect(0, 0, boardWidth, boardHeight);
-			drawBall();
-			drawPaddle();
+      drawBall();
+      drawPaddle();
 
       if (x + dx > canvas.width - ballRadius || x + dx < ballRadius) {
         dx = -dx;
       }
-      if (y + dy > canvas.height - ballRadius || y + dy < ballRadius) {
+      if (y + dy < ballRadius) {
         dy = -dy;
+      }
+
+      if (y + dy > boardHeight - ballRadius) {
+        if (x > paddleX - 10 && x < paddleX + paddleWidth + 10) {
+          dy = -dy;
+        } else {
+          alert("GAME OVER");
+          document.location.reload();
+          clearInterval(interval);
+        }
       }
 
       x += dx;
       y += dy;
     };
 
-    setInterval(draw, 10);
+    const interval = setInterval(draw, 10);
   });
 </script>
 
