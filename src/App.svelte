@@ -29,9 +29,13 @@
 
     //Ball parametres
     const ballRadius = 10;
+
     //Ball position
     let x = boardWidth / 2;
-    let y = boardHeight - 30;
+    let y = boardHeight - 19.5;
+
+    //Ball color
+    let ballColor = "#0095DD";
 
     //Ball moves values
     let dx = 2;
@@ -67,9 +71,24 @@
       }
     };
 
+    const mouseDownHandler = () => {
+      start = true;
+    };
+
+    const mouseMoveHandler = e => {
+      const relativeX = e.clientX - canvas.offsetLeft;
+      if (relativeX > 0 && relativeX < canvas.width) {
+        paddleX = relativeX - paddleWidth / 2;
+      }
+    };
+
     //Buttons events
     document.addEventListener("keydown", keyDownHandler, false);
     document.addEventListener("keyup", keyUpHandler, false);
+
+    //Mouse events
+    canvas.addEventListener("mousedown", mouseDownHandler, false);
+    document.addEventListener("mousemove", mouseMoveHandler, false);
 
     //Brick description
     const brickRowCount = 3;
@@ -80,34 +99,99 @@
     const brickOffsetTop = 30;
     const brickOffsetLeft = 30;
 
-    var bricks = [];
-    for (var c = 0; c < brickColumnCount; c++) {
+    let bricks = [];
+    // state: 0 - disappear
+    // state: 1 - appear
+    for (let c = 0; c < brickColumnCount; c++) {
       bricks[c] = [];
-      for (var r = 0; r < brickRowCount; r++) {
-        bricks[c][r] = { x: 0, y: 0 };
+      for (let r = 0; r < brickRowCount; r++) {
+        bricks[c][r] = { x: 0, y: 0, state: 1 };
       }
     }
 
+    //Score
+    let score = 0;
+
+    //Lives
+    let lives = 3;
+
+    //Game has begun
+    let start = false;
+
+    const drawStartText = () => {
+      ctx.font = "bold 22px Arial";
+      ctx.fillStyle = "#fff";
+      ctx.fillText("PRESS LEFT MOUSE BUTTON TO START", 22, 140);
+    };
+
     const drawBricks = () => {
-      for (var c = 0; c < brickColumnCount; c++) {
-        for (var r = 0; r < brickRowCount; r++) {
-          var brickX = c * (brickWidth + brickPadding) + brickOffsetLeft;
-          var brickY = r * (brickHeight + brickPadding) + brickOffsetTop;
-          bricks[c][r].x = brickX;
-          bricks[c][r].y = brickY;
-          ctx.beginPath();
-          ctx.rect(brickX, brickY, brickWidth, brickHeight);
-          ctx.fillStyle = "#0095DD";
-          ctx.fill();
-          ctx.closePath();
+      for (let c = 0; c < brickColumnCount; c++) {
+        for (let r = 0; r < brickRowCount; r++) {
+          if (bricks[c][r].state === 1) {
+            let brickX = c * (brickWidth + brickPadding) + brickOffsetLeft;
+            let brickY = r * (brickHeight + brickPadding) + brickOffsetTop;
+            bricks[c][r].x = brickX;
+            bricks[c][r].y = brickY;
+            ctx.beginPath();
+            ctx.rect(brickX, brickY, brickWidth, brickHeight);
+            ctx.fillStyle = "#0095DD";
+            ctx.fill();
+            ctx.closePath();
+          }
         }
       }
+    };
+
+    const collisionDetection = () => {
+      for (let c = 0; c < brickColumnCount; c++) {
+        for (let r = 0; r < brickRowCount; r++) {
+          let b = bricks[c][r];
+          if (b.state === 1) {
+            if (
+              x > b.x &&
+              x < b.x + brickWidth &&
+              y > b.y &&
+              y < b.y + brickHeight
+            ) {
+              dy = -dy;
+              b.state = 0;
+              ballColor = getRandomColor();
+              score++;
+
+              if (score === brickColumnCount * brickRowCount) {
+                console.log("You win!");
+                document.location.reload();
+                clearInterval(interval);
+              }
+            }
+          }
+        }
+      }
+    };
+
+    const drawScore = () => {
+      ctx.font = "16px Arial";
+      ctx.fillStyle = "#0095DD";
+      ctx.fillText("Score: " + score, 8, 20);
+    };
+
+    const getRandomInt = (min, max) =>
+      Math.floor(Math.random() * (Math.floor(max) - Math.ceil(min) + 1)) +
+      Math.ceil(min);
+
+    const getRandomColor = () => {
+      const rgb = "rgb";
+      let result = `${rgb}(${getRandomInt(0, 255)},${getRandomInt(
+        0,
+        255
+      )},${getRandomInt(0, 255)})`;
+      return result;
     };
 
     const drawBall = () => {
       ctx.beginPath();
       ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
-      ctx.fillStyle = "#0095DD";
+      ctx.fillStyle = ballColor;
       ctx.fill();
       ctx.closePath();
     };
@@ -127,6 +211,11 @@
         }
       }
 
+      if (!start) {
+        x = paddleX + paddleWidth / 2;
+        y = boardHeight - 19.5;
+      }
+
       ctx.beginPath();
       ctx.rect(paddleX, boardHeight - paddleHeight, paddleWidth, paddleHeight);
       ctx.fillStyle = "#0095DD";
@@ -134,11 +223,34 @@
       ctx.closePath;
     };
 
+    const drawLives = () => {
+      ctx.beginPath();
+      ctx.fillStyle = "red";
+      ctx.moveTo(18.75, 10);
+      ctx.bezierCurveTo(18.75, 10, 17.5, 6.25, 12.5, 6.25);
+      ctx.bezierCurveTo(5, 6.25, 5, 15.625, 5, 12.5);
+      ctx.bezierCurveTo(5, 20, 10, 23.75, 18.75, 30);
+      ctx.bezierCurveTo(27.5, 23.75, 32.5, 20, 32.5, 12.5);
+      ctx.bezierCurveTo(32.5, 15.625, 32.5, 6.25, 25, 6.25);
+      ctx.bezierCurveTo(21.25, 6.25, 18.75, 9.25, 18.75, 10);
+      ctx.fill();
+      ctx.font = "16px Arial";
+      ctx.fillStyle = "#0095DD";
+      ctx.fillText(lives, canvas.width - 20, 20);
+    };
+
     const draw = () => {
-      drawBricks();
       ctx.clearRect(0, 0, boardWidth, boardHeight);
+      drawBricks();
       drawBall();
       drawPaddle();
+      collisionDetection();
+      drawScore();
+      drawLives();
+
+      if (!start && lives === 3) {
+        drawStartText();
+      }
 
       if (x + dx > canvas.width - ballRadius || x + dx < ballRadius) {
         dx = -dx;
@@ -151,14 +263,20 @@
         if (x > paddleX - 10 && x < paddleX + paddleWidth + 10) {
           dy = -dy;
         } else {
-          alert("GAME OVER");
-          document.location.reload();
-          clearInterval(interval);
+          if (lives > 1) {
+            lives--;
+            start = false;
+          } else {
+            document.location.reload();
+            clearInterval(interval);
+          }
         }
       }
 
-      x += dx;
-      y += dy;
+      if (start) {
+        x += dx;
+        y += dy;
+      }
     };
 
     const interval = setInterval(draw, 10);
@@ -168,6 +286,7 @@
 <style>
   canvas {
     border: 1px solid pink;
+    background: #000;
   }
 </style>
 
